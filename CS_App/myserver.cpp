@@ -4,7 +4,8 @@ MyServer::MyServer(QObject *parent) :
     firstSocket(NULL)
 {
     server = new QTcpServer(this);
-    qDebug() << "server listen = " << server->listen(QHostAddress::Any, 6666);
+
+    qDebug() << "server listen = " << server->listen(QHostAddress::LocalHost, 6666);
     connect(server, SIGNAL(newConnection()), this, SLOT(incommingConnection())); // подключаем сигнал "новое подключение" к нашему обработчику подключений
 }
 void MyServer::incommingConnection() // обработчик подключений
