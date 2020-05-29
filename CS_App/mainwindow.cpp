@@ -51,8 +51,6 @@ void MainWindow::log(bool isServer, QString msg){
 
 void MainWindow::on_pushButton_clicked()
 {
-    //slotSendToServer();
-
     log(true,ui->textEdit->toPlainText());
 
     sendToClient(m_pTcpSocket, ui->textEdit->toPlainText());
@@ -75,28 +73,17 @@ void MainWindow::InitServer(int nPort)
         return;
     }
     connect(m_ptcpServer, SIGNAL(newConnection()), this, SLOT(slotNewConnection()));
-
-    /*
-    m_ptxt = new QTextEdit;
-    m_ptxt->setReadOnly(true);
-
-    //Layout setup
-    QVBoxLayout* pvbxLayout = new QVBoxLayout;
-    pvbxLayout->addWidget(new QLabel("<H1>Server</H1>"));
-    pvbxLayout->addWidget(m_ptxt);
-    setLayout(pvbxLayout);
-    */
 }
 
 void MainWindow::slotNewConnection()
 {
-    QTcpSocket* pClientSocket = m_ptcpServer->nextPendingConnection();
-    connect(pClientSocket, SIGNAL(disconnected()),pClientSocket, SLOT(deleteLater()));
-    connect(pClientSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
+    m_pTcpSocket = m_ptcpServer->nextPendingConnection();
+    connect(m_pTcpSocket, SIGNAL(disconnected()),m_pTcpSocket, SLOT(deleteLater()));
+    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
 
-    sendToClient(pClientSocket, "Server Response: Connected!");
+    sendToClient(m_pTcpSocket, "Server Response: Connected!");
 
-    log(false, "[new connection]");
+    ui->selectedIP->setText(m_pTcpSocket->peerAddress().toString());
 }
 
 void MainWindow::slotReadClient()
@@ -160,29 +147,11 @@ void MainWindow::InitClient(const QString& strHost, int nPort)
     connect(m_pTcpSocket, SIGNAL(connected()), SLOT(slotConnected()));
     connect(m_pTcpSocket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
     connect(m_pTcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slotError(QAbstractSocket::SocketError)));
+}
 
-    //m_ptxtInfo = new QTextEdit;
-    //m_ptxtInput = new QLineEdit;
-
-    //connect(m_ptxtInput, SIGNAL(returnPressed()), this, SLOT(slotSendToServer()));
-
-    //m_ptxtInfo->setReadOnly(true);
-
-    //QPushButton* pcmd = new QPushButton("&Send");
-
-    //connect(this, SIGNAL(on_pushButton_clicked()), SLOT(slotSendToServer()));
-
-    /*
-    //Layout setup
-    QVBoxLayout* pvbxLayout = new QVBoxLayout;
-
-    pvbxLayout->addWidget(new QLabel("<H1>Client</H1>"));
-    pvbxLayout->addWidget(m_ptxtInfo);
-    pvbxLayout->addWidget(m_ptxtInput);
-    pvbxLayout->addWidget(pcmd);
-
-    setLayout(pvbxLayout);
-    */
+void MainWindow::slotConnected()
+{
+    log(false,"[Received the connected() signal]");
 }
 
 void MainWindow::slotReadyRead()
@@ -199,11 +168,8 @@ void MainWindow::slotReadyRead()
         if (m_pTcpSocket->bytesAvailable() < m_nNextBlockSize) {
         break;
     }
-    QTime time;
     QString str;
-    in >> time >> str;
-    //m_ptxtInfo->append(time.toString() + " " + str);
-    qDebug() << time.toString() + " " + str;
+    in >> str;
 
     log(false,str);
 
@@ -224,39 +190,8 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
     QString(m_pTcpSocket->errorString()));
     //m_ptxtInfo->append(strError);
 
-    qDebug() << strError;
-
     log(true,'['+strError+']');
 }
-
-void MainWindow::slotSendToServer()
-{
-    QByteArray arrBlock;
-    QDataStream out(&arrBlock, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_4_2);
-    //out << quint16(0) << QTime::currentTime() << m_ptxtInput->text();
-
-    out.device()->seek(0);
-    out << quint16(arrBlock.size() - sizeof(quint16));
-    m_pTcpSocket->write(arrBlock);
-    //m_ptxtInput->setText("");
-}
-
-
-
-void MainWindow::slotConnected()
-{
-   // m_ptxtInfo->append("Received the connected() signal");
-
-    log(true,"[Received the connected() signal]");
-
-    qDebug() << "Received the connected() signal";
-}
-
-
-// SQL
-
-
 
 void MainWindow::on_pushButton_2_clicked()
 {

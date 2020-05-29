@@ -54,16 +54,14 @@ private:
 
     void sendToClient(QTcpSocket* pSocket, const QString& str);
 
-    void UpdateIPTable();
     void InitServer(int nPort);
     void InitClient(const QString& strHost, int nPort);
 
     void log(bool isServer, QString msg);
 private slots:
-    void slotReadyRead ( );
+    void slotReadyRead();
     void slotError (QAbstractSocket::SocketError);
-    void slotSendToServer( );
-    void slotConnected ( );
+    void slotConnected();
 
     void slotNewConnection();
     void slotReadClient();
