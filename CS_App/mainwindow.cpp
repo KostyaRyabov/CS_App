@@ -80,45 +80,34 @@ void MainWindow::slotNewConnection()
     m_pTcpSocket = m_ptcpServer->nextPendingConnection();
     connect(m_pTcpSocket, SIGNAL(disconnected()),m_pTcpSocket, SLOT(deleteLater()));
     connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
-
-    sendToClient(m_pTcpSocket, "Server Response: Connected!");
-
-    ui->selectedIP->setText(m_pTcpSocket->peerAddress().toString());
 }
 
 void MainWindow::slotReadClient()
 {
     qDebug() << "slotReadClient";
 
-    QTcpSocket* pClientSocket = (QTcpSocket*)sender();
-    QDataStream in(pClientSocket);
+    QDataStream in(m_pTcpSocket);
     in.setVersion(QDataStream::Qt_4_2);
     for (;;) {
         if (!m_nNextBlockSize) {
-            if (pClientSocket->bytesAvailable() < sizeof(quint16)) {
+            if (m_pTcpSocket->bytesAvailable() < sizeof(quint16)) {
                 break;
             }
             in >> m_nNextBlockSize;
         }
 
-        if (pClientSocket->bytesAvailable() < m_nNextBlockSize) {
+        if (m_pTcpSocket->bytesAvailable() < m_nNextBlockSize) {
             break;
         }
-        QTime   time;
+
         QString str;
-        in >> time >> str;
+        in >> str;
 
-        QString strMessage =
-            time.toString() + " " + "Client has sended - " + str;
-        //m_ptxt->append(strMessage);
-
-        log(false,strMessage);
+        log(false,str);
 
         m_nNextBlockSize = 0;
 
-        sendToClient(pClientSocket, "Server Response: Received \"" + str + "\"");
-
-        log(true,"Server Response: Received \"" + str + "\"");
+        sendToClient(m_pTcpSocket, "Server Response: Received \"" + str + "\"");
     }
 }
 
@@ -152,6 +141,10 @@ void MainWindow::InitClient(const QString& strHost, int nPort)
 void MainWindow::slotConnected()
 {
     log(false,"[Received the connected() signal]");
+
+    sendToClient(m_pTcpSocket, "Server Response: Connected!");
+
+    ui->selectedIP->setText(m_pTcpSocket->localAddress().toString());
 }
 
 void MainWindow::slotReadyRead()
