@@ -46,8 +46,6 @@ private:
     QTcpServer* m_ptcpServer;
 
     QSqlDatabase db;
-
-    QStandardItemModel* modelIP = Q_NULLPTR;
     QSqlTableModel *model;
 
     quint16 m_nNextBlockSize = 0;
@@ -64,7 +62,6 @@ private slots:
     void slotConnected();
 
     void slotNewConnection();
-    void slotReadClient();
     void on_pushButton_clicked();
 
     void on_pushButton_2_clicked();
