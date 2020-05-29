@@ -70,8 +70,6 @@ void MainWindow::UpdateIPTable()
 void MainWindow::on_interfacesTableView_clicked(const QModelIndex &index)
 {
     ui->selectedIP->setText(modelIP->index(index.row(),1).data().toString());
-
-    InitClient(ui->selectedIP->toPlainText(), 2323);
 }
 
 
@@ -299,3 +297,8 @@ void MainWindow::slotConnected()
 // SQL
 
 
+
+void MainWindow::on_pushButton_2_clicked()
+{
+    InitClient(ui->selectedIP->toPlainText(), 2323);
+}
