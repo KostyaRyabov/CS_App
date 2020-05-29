@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableView->setShowGrid(false);
     model->select();
 
-    InitServer(2323);
+    InitServer(6666);
     InitClient();
 }
 
@@ -58,10 +58,7 @@ void MainWindow::log(bool isServer, QString msg){
 void MainWindow::on_pushButton_clicked()
 {
     log(true,ui->textEdit->toPlainText());
-    //slotSendToServer();
-
-    sendMessage(ui->textEdit->toPlainText());
-    ui->textEdit->clear();
+    slotSendToServer();
 }
 
 // SERVER
@@ -81,7 +78,7 @@ void MainWindow::slotNewConnection()
 {
     m_pTcpSocket = m_ptcpServer->nextPendingConnection();
     connect(m_pTcpSocket, SIGNAL(disconnected()),m_pTcpSocket, SLOT(deleteLater()));
-    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
+    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
 
     qDebug() << "       new connection";
 
@@ -146,7 +143,7 @@ void MainWindow::slotReadyRead()
 
         m_nNextBlockSize = 0;
 
-        sendMessage("[Server Response: Message is Received]");
+        sendMessage("[Server Response: Message is Received 1]");
     }
 }
 
@@ -165,7 +162,19 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
     log(true,'['+strError+']');
 }
 
+void MainWindow::slotSendToServer()
+{
+    QByteArray arrBlock;
+    QDataStream out(&arrBlock, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_4_2);
+    out << quint16(0) << ui->textEdit->toPlainText();
+    out.device()->seek(0);
+    out << quint16(arrBlock.size() - sizeof(quint16));
+    m_pTcpSocket->write(arrBlock);
+    ui->textEdit->clear();
+}
+
 void MainWindow::on_pushButton_2_clicked()
 {
-    m_pTcpSocket->connectToHost(ui->selectedIP->toPlainText(), 2323);
+    m_pTcpSocket->connectToHost(ui->selectedIP->toPlainText(), ui->selectedPORT->toPlainText().toInt());
 }
