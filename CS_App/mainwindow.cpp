@@ -15,7 +15,6 @@ MainWindow::MainWindow(QWidget *parent)
         query = QSqlQuery("CREATE TABLE dialog (id DateTime PRIMARY KEY, side TEXT, msg TEXT)");
     }
 
-
     model = new QSqlTableModel(this,db);
 
     model->setTable("dialog");
@@ -58,7 +57,8 @@ void MainWindow::log(bool isServer, QString msg){
 void MainWindow::on_pushButton_clicked()
 {
     log(true,ui->textEdit->toPlainText());
-    slotSendToServer();
+    sendMessage(ui->textEdit->toPlainText());
+    ui->textEdit->clear();
 }
 
 // SERVER
