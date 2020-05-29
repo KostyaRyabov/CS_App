@@ -51,6 +51,7 @@ private:
     quint16 m_nNextBlockSize = 0;
 
     void sendMessage(const QString& str);
+    void slotSendToServer();
 
     void InitServer(int nPort);
     void InitClient();
@@ -58,6 +59,7 @@ private:
     void log(bool isServer, QString msg);
 private slots:
     void slotReadClient();
+    void slotReadyRead();
     void slotError (QAbstractSocket::SocketError);
     void slotConnected();
 

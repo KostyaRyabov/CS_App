@@ -58,8 +58,7 @@ void MainWindow::log(bool isServer, QString msg){
 void MainWindow::on_pushButton_clicked()
 {
     log(true,ui->textEdit->toPlainText());
-    sendMessage(ui->textEdit->toPlainText());
-    ui->textEdit->clear();
+    slotSendToServer();
 }
 
 // SERVER
@@ -84,6 +83,8 @@ void MainWindow::slotNewConnection()
     qDebug() << "       new connection";
 
     ui->selectedIP->setText(m_pTcpSocket->localAddress().toString());
+
+    sendMessage("[Server Response: Connected!]");
 }
 
 void MainWindow::sendMessage(const QString& str)
@@ -109,6 +110,7 @@ void MainWindow::InitClient()
     m_pTcpSocket = new QTcpSocket(this);
 
     connect(m_pTcpSocket, SIGNAL(connected()), SLOT(slotConnected()));
+    connect(m_pTcpSocket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
     connect(m_pTcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slotError(QAbstractSocket::SocketError)));
 }
 
@@ -132,16 +134,43 @@ void MainWindow::slotReadClient()
             in >> m_nNextBlockSize;
         }
         if (m_pTcpSocket->bytesAvailable() < m_nNextBlockSize) {
-        break;
+            break;
+        }
+        QString str;
+        in >> str;
+
+        log(false,str);
+
+        m_nNextBlockSize = 0;
+
+        sendMessage("[Server Response: Message is Received]");
     }
-    QString str;
-    in >> str;
+}
 
-    log(false,str);
+void MainWindow::slotReadyRead()
+{
+    qDebug() << "           ready read";
 
-    m_nNextBlockSize = 0;
+    QDataStream in(m_pTcpSocket);
+    in.setVersion(QDataStream::Qt_4_2);
+    for (;;) {
+        if (!m_nNextBlockSize) {
+            if (m_pTcpSocket->bytesAvailable() < sizeof(quint16)) {
+                break;
+            }
+            in >> m_nNextBlockSize;
+        }
+        if (m_pTcpSocket->bytesAvailable() < m_nNextBlockSize) {
+            break;
+        }
+        QString str;
+        in >> str;
 
-    sendMessage("[Server Response: Message is Received]");
+        log(false,str);
+
+        m_nNextBlockSize = 0;
+
+        sendMessage("[Server Response: Message is Received]");
     }
 }
 
@@ -158,6 +187,18 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
     //m_ptxtInfo->append(strError);
 
     log(true,'['+strError+']');
+}
+
+void MainWindow::slotSendToServer()
+{
+    QByteArray arrBlock;
+    QDataStream out(&arrBlock, QIODevice::WriteOnly);
+    out.setVersion(QDataStream::Qt_4_2);
+    out << quint16(0) << QTime::currentTime() << ui->textEdit->toPlainText();
+    out.device()->seek(0);
+    out << quint16(arrBlock.size() - sizeof(quint16));
+    m_pTcpSocket->write(arrBlock);
+    ui->textEdit->clear();
 }
 
 void MainWindow::on_pushButton_2_clicked()
