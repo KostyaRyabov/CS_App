@@ -32,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
     model->select();
 
     InitServer(2323);
+    InitClient();
 }
 
 MainWindow::~MainWindow()
@@ -57,7 +58,7 @@ void MainWindow::log(bool isServer, QString msg){
 void MainWindow::on_pushButton_clicked()
 {
     log(true,ui->textEdit->toPlainText());
-    sendMessage(m_pTcpSocket, ui->textEdit->toPlainText());
+    sendMessage(ui->textEdit->toPlainText());
     ui->textEdit->clear();
 }
 
@@ -78,20 +79,17 @@ void MainWindow::slotNewConnection()
 {
     m_pTcpSocket = m_ptcpServer->nextPendingConnection();
     connect(m_pTcpSocket, SIGNAL(disconnected()),m_pTcpSocket, SLOT(deleteLater()));
-    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
+
+    qDebug() << "       new connection";
 
     ui->selectedIP->setText(m_pTcpSocket->localAddress().toString());
 }
 
-void MainWindow::slotConnected()
+void MainWindow::sendMessage(const QString& str)
 {
-    log(false,"[Received the connected() signal]");
+    qDebug() << "       send message";
 
-    sendMessage(m_pTcpSocket, "[Server Response: Connected!]");
-}
-
-void MainWindow::sendMessage(QTcpSocket* pSocket, const QString& str)
-{
     QByteArray  arrBlock;
     QDataStream out(&arrBlock, QIODevice::WriteOnly);
     out.setVersion(QDataStream::Qt_4_2);
@@ -100,23 +98,30 @@ void MainWindow::sendMessage(QTcpSocket* pSocket, const QString& str)
     out.device()->seek(0);
     out << quint16(arrBlock.size() - sizeof(quint16));
 
-    pSocket->write(arrBlock);
+    m_pTcpSocket->write(arrBlock);
 }
 
 
 // CLIENT
 
-void MainWindow::InitClient(const QString& strHost, int nPort)
+void MainWindow::InitClient()
 {
     m_pTcpSocket = new QTcpSocket(this);
-    m_pTcpSocket->connectToHost(strHost, nPort);
 
     connect(m_pTcpSocket, SIGNAL(connected()), SLOT(slotConnected()));
     connect(m_pTcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slotError(QAbstractSocket::SocketError)));
 }
 
-void MainWindow::slotReadyRead()
+void MainWindow::slotConnected()
 {
+    log(false,"[Received the connected() signal]");
+    sendMessage("[Server Response: Connected!]");
+}
+
+void MainWindow::slotReadClient()
+{
+    qDebug() << "           ready read";
+
     QDataStream in(m_pTcpSocket);
     in.setVersion(QDataStream::Qt_4_2);
     for (;;) {
@@ -136,7 +141,7 @@ void MainWindow::slotReadyRead()
 
     m_nNextBlockSize = 0;
 
-    sendMessage(m_pTcpSocket, "[Server Response: Message is Received]");
+    sendMessage("[Server Response: Message is Received]");
     }
 }
 
@@ -157,5 +162,5 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    InitClient(ui->selectedIP->toPlainText(), 2323);
+    m_pTcpSocket->connectToHost(ui->selectedIP->toPlainText(), 2323);
 }

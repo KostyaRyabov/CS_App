@@ -50,14 +50,14 @@ private:
 
     quint16 m_nNextBlockSize = 0;
 
-    void sendMessage(QTcpSocket* pSocket, const QString& str);
+    void sendMessage(const QString& str);
 
     void InitServer(int nPort);
-    void InitClient(const QString& strHost, int nPort);
+    void InitClient();
 
     void log(bool isServer, QString msg);
 private slots:
-    void slotReadyRead();
+    void slotReadClient();
     void slotError (QAbstractSocket::SocketError);
     void slotConnected();
 
