@@ -50,7 +50,7 @@ private:
 
     quint16 m_nNextBlockSize = 0;
 
-    void sendToClient(QTcpSocket* pSocket, const QString& str);
+    void sendMessage(QTcpSocket* pSocket, const QString& str);
 
     void InitServer(int nPort);
     void InitClient(const QString& strHost, int nPort);
