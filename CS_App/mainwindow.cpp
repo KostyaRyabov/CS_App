@@ -12,13 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
         db.setDatabaseName(":memory:");
 
         db.open();
-        query = QSqlQuery("CREATE TABLE dialog (id DateTime PRIMARY KEY, msg TEXT)");
-
-        query.prepare("INSERT INTO dialog(id,msg) VALUES(:datetime,': Eddie Guerrero')");
-        query.bindValue(":datetime", QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
-        query.exec();
-
-        query.exec("SELECT * FROM dialog");
+        query = QSqlQuery("CREATE TABLE dialog (id DateTime PRIMARY KEY, side TEXT, msg TEXT)");
     }
 
 
@@ -31,30 +25,78 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableView->verticalHeader()->hide();
     ui->tableView->horizontalHeader()->hide();
     ui->tableView->setColumnWidth(0,110);
-    //ui->tableView->setColumnWidth(1,499);
+    ui->tableView->setColumnWidth(1,10);
+    ui->tableView->setColumnWidth(2,450);
+    ui->tableView->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->tableView->setShowGrid(false);
     model->select();
 
-
+    UpdateIPTable();
 
     InitServer(2323);
-    InitClient("localhost", 2323);
 }
+
+void MainWindow::UpdateIPTable()
+{
+    if (modelIP == Q_NULLPTR)
+    {
+        modelIP = new QStandardItemModel;
+    }
+    modelIP->clear();
+    //Заголовки столбцов
+    QStringList horizontalHeader;
+    horizontalHeader.append("Имя");
+    //horizontalHeader.append("IPv6");
+    horizontalHeader.append("IPv4");
+
+    modelIP->setHorizontalHeaderLabels(horizontalHeader);
+    QList<QNetworkInterface> ifaces = QNetworkInterface::allInterfaces();
+    for(int i = 0; i < ifaces.size(); i++)
+    {
+        if(ifaces[i].CanBroadcast && ifaces[i].type() == QNetworkInterface::Ethernet )
+        {
+            QList<QStandardItem*> items;
+            items.append(new QStandardItem(ifaces[i].humanReadableName()));
+            //QString ipv6 = ifaces[i].addressEntries().at(0).ip().toString();
+            //items.append(new QStandardItem(ipv6.left(ipv6.indexOf('%'))));
+            items.append(new QStandardItem(ifaces[i].addressEntries().at(1).ip().toString()));
+            modelIP->appendRow(items);
+        }
+    }
+    ui->interfacesTableView->setModel(modelIP);
+    ui->interfacesTableView->resizeColumnsToContents();
+}
+
+void MainWindow::on_interfacesTableView_clicked(const QModelIndex &index)
+{
+    ui->selectedIP->setText(modelIP->index(index.row(),1).data().toString());
+
+    InitClient(ui->selectedIP->toPlainText(), 2323);
+}
+
 
 MainWindow::~MainWindow()
 {
     delete ui;
 }
 
+void MainWindow::log(bool isServer, QString msg){
+    query.prepare("INSERT INTO dialog(id,side,msg) VALUES(:datetime, :side,:message)");
+    query.bindValue(":datetime", QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
+    query.bindValue(":side", (isServer)?" S:":" C:");
+    query.bindValue(":message", msg);
+    query.exec();
+
+    model->select();
+}
+
 void MainWindow::on_pushButton_clicked()
 {
     //slotSendToServer();
 
-    query.prepare("INSERT INTO dialog(id,msg) VALUES(:datetime,': Eddie Guerrero')");
-    query.bindValue(":datetime", QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss"));
-    query.exec();
+    log(true,ui->textEdit->toPlainText());
 
-    model->select();
+    ui->textEdit->clear();
 }
 
 // SERVER
@@ -88,16 +130,13 @@ void MainWindow::InitServer(int nPort)
 void MainWindow::slotNewConnection()
 {
     QTcpSocket* pClientSocket = m_ptcpServer->nextPendingConnection();
-    connect(pClientSocket, SIGNAL(disconnected()),
-            pClientSocket, SLOT(deleteLater())
-           );
-    connect(pClientSocket, SIGNAL(readyRead()),
-            this,          SLOT(slotReadClient())
-           );
+    connect(pClientSocket, SIGNAL(disconnected()),pClientSocket, SLOT(deleteLater()));
+    connect(pClientSocket, SIGNAL(readyRead()), this, SLOT(slotReadClient()));
 
     sendToClient(pClientSocket, "Server Response: Connected!");
 
-    qDebug() << "Server Response: Connected!";
+
+    log(true,"[Server Response: Connected!]");
 }
 
 void MainWindow::slotReadClient()
@@ -124,11 +163,15 @@ void MainWindow::slotReadClient()
             time.toString() + " " + "Client has sended - " + str;
         //m_ptxt->append(strMessage);
 
+        log(false,strMessage);
+
         qDebug() << strMessage;
 
         m_nNextBlockSize = 0;
 
         sendToClient(pClientSocket, "Server Response: Received \"" + str + "\"");
+
+        log(true,"Server Response: Received \"" + str + "\"");
 
         qDebug() << "Server Response: Received \"" + str + "\"";
     }
@@ -204,6 +247,8 @@ void MainWindow::slotReadyRead()
     //m_ptxtInfo->append(time.toString() + " " + str);
     qDebug() << time.toString() + " " + str;
 
+    log(false,str);
+
     m_nNextBlockSize = 0;
     }
 }
@@ -222,6 +267,8 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
     //m_ptxtInfo->append(strError);
 
     qDebug() << strError;
+
+    log(true,'['+strError+']');
 }
 
 void MainWindow::slotSendToServer()
@@ -243,9 +290,12 @@ void MainWindow::slotConnected()
 {
    // m_ptxtInfo->append("Received the connected() signal");
 
+    log(true,"[Received the connected() signal]");
+
     qDebug() << "Received the connected() signal";
 }
 
 
 // SQL
+
 

@@ -23,6 +23,8 @@
 #include <QTcpSocket>
 #include <QDataStream>
 #include <QTime>
+#include <QStandardItemModel>
+#include <QNetworkInterface>
 
 #include <QtSql>
 
@@ -44,14 +46,19 @@ private:
     QTcpServer* m_ptcpServer;
 
     QSqlDatabase db;
+
+    QStandardItemModel* modelIP = Q_NULLPTR;
     QSqlTableModel *model;
 
     quint16 m_nNextBlockSize = 0;
 
     void sendToClient(QTcpSocket* pSocket, const QString& str);
 
+    void UpdateIPTable();
     void InitServer(int nPort);
     void InitClient(const QString& strHost, int nPort);
+
+    void log(bool isServer, QString msg);
 private slots:
     void slotReadyRead ( );
     void slotError (QAbstractSocket::SocketError);
@@ -61,6 +68,8 @@ private slots:
     void slotNewConnection();
     void slotReadClient();
     void on_pushButton_clicked();
+
+    void on_interfacesTableView_clicked(const QModelIndex &index);
 
 private:
     Ui::MainWindow *ui;
