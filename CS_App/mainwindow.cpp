@@ -165,18 +165,6 @@ void MainWindow::slotError(QAbstractSocket::SocketError err)
     log(true,'['+strError+']');
 }
 
-void MainWindow::slotSendToServer()
-{
-    QByteArray arrBlock;
-    QDataStream out(&arrBlock, QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_4_2);
-    out << quint16(0) << QTime::currentTime() << ui->textEdit->toPlainText();
-    out.device()->seek(0);
-    out << quint16(arrBlock.size() - sizeof(quint16));
-    m_pTcpSocket->write(arrBlock);
-    ui->textEdit->clear();
-}
-
 void MainWindow::on_pushButton_2_clicked()
 {
     m_pTcpSocket->connectToHost(ui->selectedIP->toPlainText(), 2323);
