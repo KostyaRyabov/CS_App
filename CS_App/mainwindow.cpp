@@ -31,47 +31,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->tableView->setShowGrid(false);
     model->select();
 
-    UpdateIPTable();
-
     InitServer(2323);
 }
-
-void MainWindow::UpdateIPTable()
-{
-    if (modelIP == Q_NULLPTR)
-    {
-        modelIP = new QStandardItemModel;
-    }
-    modelIP->clear();
-    //Заголовки столбцов
-    QStringList horizontalHeader;
-    horizontalHeader.append("Имя");
-    //horizontalHeader.append("IPv6");
-    horizontalHeader.append("IPv4");
-
-    modelIP->setHorizontalHeaderLabels(horizontalHeader);
-    QList<QNetworkInterface> ifaces = QNetworkInterface::allInterfaces();
-    for(int i = 0; i < ifaces.size(); i++)
-    {
-        if(ifaces[i].CanBroadcast && ifaces[i].type() == QNetworkInterface::Ethernet )
-        {
-            QList<QStandardItem*> items;
-            items.append(new QStandardItem(ifaces[i].humanReadableName()));
-            //QString ipv6 = ifaces[i].addressEntries().at(0).ip().toString();
-            //items.append(new QStandardItem(ipv6.left(ipv6.indexOf('%'))));
-            items.append(new QStandardItem(ifaces[i].addressEntries().at(1).ip().toString()));
-            modelIP->appendRow(items);
-        }
-    }
-    ui->interfacesTableView->setModel(modelIP);
-    ui->interfacesTableView->resizeColumnsToContents();
-}
-
-void MainWindow::on_interfacesTableView_clicked(const QModelIndex &index)
-{
-    ui->selectedIP->setText(modelIP->index(index.row(),1).data().toString());
-}
-
 
 MainWindow::~MainWindow()
 {
@@ -93,6 +54,8 @@ void MainWindow::on_pushButton_clicked()
     //slotSendToServer();
 
     log(true,ui->textEdit->toPlainText());
+
+    sendToClient(m_pTcpSocket, ui->textEdit->toPlainText());
 
     ui->textEdit->clear();
 }
@@ -133,12 +96,13 @@ void MainWindow::slotNewConnection()
 
     sendToClient(pClientSocket, "Server Response: Connected!");
 
-
-    log(true,"[Server Response: Connected!]");
+    log(false, "[new connection]");
 }
 
 void MainWindow::slotReadClient()
 {
+    qDebug() << "slotReadClient";
+
     QTcpSocket* pClientSocket = (QTcpSocket*)sender();
     QDataStream in(pClientSocket);
     in.setVersion(QDataStream::Qt_4_2);
@@ -163,15 +127,11 @@ void MainWindow::slotReadClient()
 
         log(false,strMessage);
 
-        qDebug() << strMessage;
-
         m_nNextBlockSize = 0;
 
         sendToClient(pClientSocket, "Server Response: Received \"" + str + "\"");
 
         log(true,"Server Response: Received \"" + str + "\"");
-
-        qDebug() << "Server Response: Received \"" + str + "\"";
     }
 }
 
