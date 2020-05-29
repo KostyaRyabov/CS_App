@@ -58,7 +58,8 @@ private:
 
     void log(bool isServer, QString msg);
 private slots:
-    void slotReadyRead();
+    void slotReadServer();
+    void slotReadClient();
     void slotError (QAbstractSocket::SocketError);
     void slotConnected();
 

@@ -78,7 +78,7 @@ void MainWindow::slotNewConnection()
 {
     m_pTcpSocket = m_ptcpServer->nextPendingConnection();
     connect(m_pTcpSocket, SIGNAL(disconnected()),m_pTcpSocket, SLOT(deleteLater()));
-    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadyRead()));
+    connect(m_pTcpSocket, SIGNAL(readyRead()), this, SLOT(slotReadServer()));
 
     qDebug() << "       new connection";
 
@@ -110,7 +110,7 @@ void MainWindow::InitClient()
     m_pTcpSocket = new QTcpSocket(this);
 
     connect(m_pTcpSocket, SIGNAL(connected()), SLOT(slotConnected()));
-    connect(m_pTcpSocket, SIGNAL(readyRead()), SLOT(slotReadyRead()));
+    connect(m_pTcpSocket, SIGNAL(readyRead()), SLOT(slotReadClient()));
     connect(m_pTcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(slotError(QAbstractSocket::SocketError)));
 }
 
@@ -120,7 +120,7 @@ void MainWindow::slotConnected()
     sendMessage("[Server Response: Connected!]");
 }
 
-void MainWindow::slotReadyRead()
+void MainWindow::slotReadServer()
 {
     qDebug() << "           ready read";
 
@@ -143,7 +143,32 @@ void MainWindow::slotReadyRead()
 
         m_nNextBlockSize = 0;
 
-        sendMessage("[Server Response: Message is Received 1]");
+        sendMessage("[Server Response: Message is Received]");
+    }
+}
+
+void MainWindow::slotReadClient()
+{
+    qDebug() << "           ready read";
+
+    QDataStream in(m_pTcpSocket);
+    in.setVersion(QDataStream::Qt_4_2);
+    for (;;) {
+        if (!m_nNextBlockSize) {
+            if (m_pTcpSocket->bytesAvailable() < sizeof(quint16)) {
+                break;
+            }
+            in >> m_nNextBlockSize;
+        }
+        if (m_pTcpSocket->bytesAvailable() < m_nNextBlockSize) {
+            break;
+        }
+        QString str;
+        in >> str;
+
+        log(false,str);
+
+        m_nNextBlockSize = 0;
     }
 }
 
@@ -176,5 +201,5 @@ void MainWindow::slotSendToServer()
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    m_pTcpSocket->connectToHost(ui->selectedIP->toPlainText(), ui->selectedPORT->toPlainText().toInt());
+    m_pTcpSocket->connectToHost(ui->selectedIP->toPlainText(), 6666);
 }
