@@ -58,7 +58,10 @@ void MainWindow::log(bool isServer, QString msg){
 void MainWindow::on_pushButton_clicked()
 {
     log(true,ui->textEdit->toPlainText());
-    slotSendToServer();
+    //slotSendToServer();
+
+    sendMessage(ui->textEdit->toPlainText());
+    ui->textEdit->clear();
 }
 
 // SERVER
@@ -118,33 +121,6 @@ void MainWindow::slotConnected()
 {
     log(false,"[Received the connected() signal]");
     sendMessage("[Server Response: Connected!]");
-}
-
-void MainWindow::slotReadClient()
-{
-    qDebug() << "           ready read";
-
-    QDataStream in(m_pTcpSocket);
-    in.setVersion(QDataStream::Qt_4_2);
-    for (;;) {
-        if (!m_nNextBlockSize) {
-            if (m_pTcpSocket->bytesAvailable() < sizeof(quint16)) {
-                break;
-            }
-            in >> m_nNextBlockSize;
-        }
-        if (m_pTcpSocket->bytesAvailable() < m_nNextBlockSize) {
-            break;
-        }
-        QString str;
-        in >> str;
-
-        log(false,str);
-
-        m_nNextBlockSize = 0;
-
-        sendMessage("[Server Response: Message is Received]");
-    }
 }
 
 void MainWindow::slotReadyRead()
